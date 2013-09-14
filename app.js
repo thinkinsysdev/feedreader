@@ -10,10 +10,22 @@ var FeedParser = require('feedparser')
 
 
 var mongosdb = mongos.db(process.env.MONGODB_DEVELOPMENT_URI);
-mongosdb.collection('users').remove({}, function(err,result) {
+	var urls = ['http://feeds.reuters.com/reuters/topNews',
+            'http://feeds.reuters.com/reuters/peopleNews',
+            'http://feeds.reuters.com/Reuters/worldNews',
+           'http://feeds.reuters.com/news/artsculture',
+           'http://feeds.reuters.com/reuters/businessNews',
+           'http://feeds.reuters.com/ReutersBusinessTravel',
+           'http://feeds.reuters.com/reuters/companyNews',
+          'http://rss.cnn.com/rss/cnn_topstories.rss',
+          'http://rss.cnn.com/rss/cnn_world.rss',
+          'http://rss.cnn.com/rss/cnn_us.rss',
+          'http://rss.cnn.com/rss/money_latest.rss',
+          'http://rss.cnn.com/rss/cnn_allpolitics.rss' ];
+	
 
-	if (!err) console.log('Users collection deleted!');
-});
+
+
 /*
 mongosdb.collection('test_insert').insert({foo: 'bar'}, function(err, result) {
     console.log(result);
@@ -63,13 +75,7 @@ console.log('Done');
 //----------------------
 var Posts = [];
 var post = '';
-var urls = ['http://feeds.reuters.com/reuters/topNews',
-            'http://feeds.reuters.com/reuters/peopleNews',
-            'http://feeds.reuters.com/Reuters/worldNews',
-           'http://feeds.reuters.com/news/artsculture',
-           'http://feeds.reuters.com/reuters/businessNews',
-           'http://feeds.reuters.com/ReutersBusinessTravel',
-           'http://feeds.reuters.com/reuters/companyNews'];
+
 
  getArticles = function(url) {
    var items = 0;
@@ -179,12 +185,66 @@ _.map(urls, function(url) {
 */
 //----original function
 var loopItems = setInterval( function() {
-async.map(urls, getArticles, function(err, results) {
 
-    if(err) console.log(err);
-  console.log('Done with all feeds at : ' + new Date());
+var feeds = mongosdb.collection('feeds').find().toArray(function (err,feeds) {
+	var readfromurls = [];
+	
+	for(i=0;i<feeds.length;i++)
+	{
+		readfromurls[i] = feeds[i].url;
+	}
+
+
+	async.map(readfromurls, getArticles, function(err, results) {
+
+    	if(err) console.log(err);
+  		console.log('Done with all feeds at : ' + new Date());
   
-}); }, 10000);
+		});
+		
+		});
+	 }, 10000);
+
+
+async.map(urls, updateFeeds, function(err, results) {
+		if(err) throw err;
+		console.log('Done with adding feeds');
+
+});
+
+function updateFeeds(url) {
+	var feeds = mongosdb.collection('feeds');
+	feeds.count(function(err,result) {
+
+	
+	
+	if (!err && result == 0) 
+	{
+	console.log('found result 0 records ');	
+		feeds.insert({url: url, updated: new Date()}, function(err,result) {
+			console.log('inserted feed ' + url);
+			});
+			}
+	else if(result > 1) {
+	
+		feeds.count({url: url}, function(err, count) {
+			console.log('count of urls : ' + count);
+				if(count == 0)
+				{
+					mongosdb.collection('feeds').insert({url: url, updated: new Date()}, function(err,result) {
+			
+						console.log('Inserted feed: ' + url);
+					});
+				}
+			
+			});
+		}
+		});
+};
+		
+	
+
+
 
 
 function match(item, filter) {
@@ -235,7 +295,7 @@ function checkExistingPosts(inArr, title, guid, exists)
 process.on('SIGINT', function() {
     console.log('Recieve SIGINT');
   mongosdb.collection('post_items').remove({});
-  
+//  mongosdb.collection('feeds').remove({});
     mongosdb.close(function(){
         console.log('database has closed');
     })
