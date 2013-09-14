@@ -10,7 +10,10 @@ var FeedParser = require('feedparser')
 
 
 var mongosdb = mongos.db(process.env.MONGODB_DEVELOPMENT_URI);
+mongosdb.collection('users').remove({}, function(err,result) {
 
+	if (!err) console.log('Users collection deleted!');
+});
 /*
 mongosdb.collection('test_insert').insert({foo: 'bar'}, function(err, result) {
     console.log(result);
@@ -240,13 +243,3 @@ process.on('SIGINT', function() {
     clearInterval(loopItems);
 });
 
-process.on('exit', function() {
-  console.log('Recieve KILL');
-  mongosdb.collection('post_items').remove({});
-  
-    mongosdb.close(function(){
-        console.log('database has closed');
-    })
-    console.log('clearing the loop');
-    clearInterval(loopItems);  
-});
