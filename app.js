@@ -98,9 +98,11 @@ var post = '';
       console.log('Got article: %s', item.title + '-' + item.link + '(' + item.meta.title + ')');
       var post = { 
         title: item.title,
-        link: item.link,
+        url: item.link,
+        imgurl: item.image.link,
         guid: item.guid,
         feedname: item.meta.title
+        
       };
        var matched = checkExistingPosts(Posts,item.title.toString(), item.guid.toString(), true);
         console.log('Item found ' + matched);
@@ -294,7 +296,7 @@ function checkExistingPosts(inArr, title, guid, exists)
 
 process.on('SIGINT', function() {
     console.log('Recieve SIGINT');
-  mongosdb.collection('post_items').remove({});
+ // mongosdb.collection('post_items').remove({});
 //  mongosdb.collection('feeds').remove({});
     mongosdb.close(function(){
         console.log('database has closed');
